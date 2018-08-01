@@ -1,5 +1,7 @@
 package com.example.lancer.lancermusicplayer.bean;
 
+import android.widget.ImageView;
+
 /**
  * Created by Lancer on 2018/4/2.
  */
@@ -9,7 +11,16 @@ public class Info {
     private String artist;
     private String duration;
     private String Url;
-/*    private long size;*/
+    private int abulm_id;
+
+    public int getAbulm_id() {
+        return abulm_id;
+    }
+
+    public void setAbulm_id(int abulm_id) {
+        this.abulm_id = abulm_id;
+    }
+    /*    private long size;*/
 
     public String getTitle() {
         return title;

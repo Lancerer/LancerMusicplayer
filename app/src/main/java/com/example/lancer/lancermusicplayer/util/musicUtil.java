@@ -26,6 +26,7 @@ public class musicUtil {
                 info.setArtist(cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST)));
                 info.setTitle((cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE))));
                 info.setDuration(cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DURATION)));
+                info.setAbulm_id(cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID)));
                 info.setUrl(cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA)));
                 //  info.setSize(cursor.getInt(cursor.getColumnIndex(MediaStore.Audio.Media.SIZE)));
                 InfoList.add(info);

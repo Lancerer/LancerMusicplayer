@@ -1,10 +1,20 @@
 package com.example.lancer.lancermusicplayer;
 
+import android.annotation.SuppressLint;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
+import android.os.ParcelFileDescriptor;
+import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.transition.Explode;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -18,6 +28,8 @@ import android.widget.TextView;
 import com.example.lancer.lancermusicplayer.bean.Info;
 import com.example.lancer.lancermusicplayer.util.musicUtil;
 
+import java.io.FileDescriptor;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -48,6 +60,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private MusicAdapter adapter;
     private int currentposition;    //当前音乐播放位置
     private MediaPlayer mediaPlayer;
+    private NotificationManager manager;
 
     private Handler mHandler = new Handler(new Handler.Callback() {
         @Override
@@ -62,6 +75,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     });
 
+    @SuppressLint("NewApi")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,8 +87,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         next.setOnClickListener(this);
         mSeekBar.setOnSeekBarChangeListener(this);
         mediaPlayer.setOnCompletionListener(this);//监听音乐播放完毕事件，自动下一曲
+        getWindow().setEnterTransition(new Explode().setDuration(1000));//转场动画
+        getWindow().setExitTransition(new Explode().setDuration(1000));
         initData();
     }
+
 
     /**
      * 初始化数据
@@ -90,11 +107,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 currentposition = position;     //获取当前点击条目的位置
                 changeMusic(currentposition);   //切歌
+                play.setImageResource(R.drawable.pause);
                 String title = musicList.get(currentposition).getTitle();
-                now.setText(title);                                                //展示当前播放的歌名
+                now.setText(title);       //展示当前播放的歌名
+
+            /*    setNotification(currentposition);*/
             }
         });
 
+    }
+
+    @Override
+    public void onBackPressed() {
+        mediaPlayer.stop();
+        mediaPlayer.release();
     }
 
     /**
@@ -104,26 +130,33 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     @Override
     public void onClick(View view) {
+        ViewHolder viewHolder = new ViewHolder();
         if (view.getId() == R.id.previous) {//上一曲
             changeMusic(--currentposition);
-
+            play.setImageResource(R.drawable.pause);
             String title = musicList.get(currentposition).getTitle();
             now.setText(title); //展示上一曲的歌名
         } else if (view.getId() == R.id.play_pause) {//暂停/播放
             // 首次点击播放按钮，默认播放第0首
             if (mediaPlayer == null) {
                 changeMusic(0);
+                String title = musicList.get(currentposition+1).getTitle();
+                now.setText(title);
             } else {
                 if (mediaPlayer.isPlaying()) {
                     mediaPlayer.pause();
+                    play.setImageResource(R.drawable.play);
                 } else {
                     mediaPlayer.start();
+                    play.setImageResource(R.drawable.pause);
                 }
             }
         } else if (view.getId() == R.id.next) {// 下一首
             changeMusic(++currentposition);
+            play.setImageResource(R.drawable.pause);
             String title = musicList.get(currentposition).getTitle();
             now.setText(title);//展示下一首的歌名
+
         }
     }
 
@@ -202,9 +235,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onCompletion(MediaPlayer mp) {
         changeMusic(++currentposition);
+        String title = musicList.get(currentposition).getTitle();
+        now.setText(title);//展示下一首的歌名
     }
 
-//音乐播放器的适配器
+    public Bitmap getArtAlbum(long audioId) {
+        String str = "content://media/external/audio/media/" + audioId + "/albumart";
+        Uri uri = Uri.parse(str);
+        ParcelFileDescriptor pfd = null;
+        try {
+            pfd = this.getContentResolver().openFileDescriptor(uri, "r");
+        } catch (FileNotFoundException e) {
+            return null;
+        }
+        Bitmap bm;
+        if (pfd != null) {
+            FileDescriptor fd = pfd.getFileDescriptor();
+            bm = BitmapFactory.decodeFileDescriptor(fd);
+            return bm;
+        }
+        return null;
+    }
+
+    //音乐播放器的适配器
     public class MusicAdapter extends BaseAdapter {
 
         @Override
@@ -238,10 +291,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 viewHolder = (ViewHolder) convertView.getTag();
             }
             Info item = getItem(position);
-            viewHolder.video_singer.setText(item.getArtist());
+            viewHolder.video_singer.setText("歌手:" + item.getArtist());
             // viewHolder.video_size.setText((int) item.getSize());
-            viewHolder.video_title.setText(item.getTitle());
+            viewHolder.video_title.setText("歌名:" + item.getTitle());
            /* viewHolder.video_duration.setText(item.getDuration());*/
+            if (getArtAlbum(item.getAbulm_id()) == null) {
+                viewHolder.video_imageView.setImageResource(R.drawable.music);
+            } else {
+                viewHolder.video_imageView.setImageBitmap(getArtAlbum(item.getAbulm_id()));
+            }
+
             return convertView;
         }
     }
